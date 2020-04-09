@@ -56,12 +56,14 @@ export default class Component extends React.Component {
   }
 
   _retrieveData = async () => {
+    console.log('_retrieveData()')
     try {
       this.getUniqueId();
 
       const value = await AsyncStorage.getItem('userState');
       if (value !== null) {
         let json = JSON.parse(value);
+
         if (json.hasOwnProperty('routeCoordinates') && json.hasOwnProperty('distanceTravelled')) {
           let { routeCoordinates, distanceTravelled } = json;
           this.setState({ routeCoordinates, distanceTravelled }, () => {
@@ -181,77 +183,68 @@ export default class Component extends React.Component {
   });
 
 
-  // 1. check if the user is infected
-  isUserInfected = async () => {
-    let res = await this.callAPI('/isUserInfected');
-    const { uniqueId, routeCoordinates } = this.state;
-    if (res) {
-
-      // 2. If they are, send their location to the server
-      if (res.uniqueId == uniqueId) {
-        this.sendInfectedLocations(uniqueId, routeCoordinates);
-      }
-    }
-  }
-
-  // Sends infected user location to the server
-  sendInfectedLocations = async(uniqueId, coords) => {
-    //let infections = await this.callAPI('POST', data, '');
-
-    let response = await fetch(API, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        uniqueId,
-        coords
-      }),
-    });
-
-    if (response.ok) { 
-      let json = await response.json();
-      console.log(json);
-    } else {
-      console.log(response.status, response.data);
-    }
-  }
-
   getInfectedLocations = async () => {
+    console.log('getInfectedLocations()')
+    let infectedLocations = [];
+
     axios
       .get(API)
       .then(res => {
         if (res.data.success && res.data.infections && res.data.infections.length) {
           let { infections } = res.data;
-          
-          this.setState({ infections });
+
+          infections.forEach(infection => {
+            // send user location data if a user has been infected
+            if (!this.isUserInfected(infection) && infection.coords.length) {
+              infectedLocations.push(infection.coords)
+            }
+          });
         }
       })
       .catch(err => console.log(err));
-  }
-  
-  callAPI = async (method, data, endPoint = '') => {
-    let response;
 
-    if (method === 'GET') {
-      response = await fetch(API + endPoint);
-    } else if (method === 'POST') {
-      response = await fetch(API + endPoint, {
-        method: 'POST', 
-        headers: '',
-        body: { data }
+      console.log(infectedLocations);
+  }
+
+  // Check if the user is infected
+  isUserInfected = async infection => {
+    let { uniqueId } = this.state;
+
+    if (infection.uniqueId == uniqueId) {
+      console.log('found infected user');
+
+      //this.sendUserInfectedLocations();
+      //TODO notify user that they are infected and display helpful info
+    }
+
+    return infection.uniqueId == uniqueId;
+  }
+
+  // Send infected user location to the server
+  sendUserInfectedLocations = async() => {
+    const { uniqueId, routeCoordinates } = this.state;
+    
+    const data = {
+      uniqueId,
+      coords: routeCoordinates
+    }
+    
+    const options = {
+      headers: {
+        'Content-Type': 'application/json',
+        "Access-Control-Allow-Origin": "*",
+      }
+    };
+
+    axios
+      .post(API, data, options)
+      .then(res => {
+        console.log(res)
       })
-    }
-
-    if (response.status === 200) { 
-      return response.json();
-    } else {
-      console.log(response.status, response.data);
-      return false;
-    }
+      .catch(err => console.log(err));
   }
 
+  
   render() {
     const { uniqueId } = this.state;
     return (
