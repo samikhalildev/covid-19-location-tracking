@@ -1,4 +1,4 @@
-# covid-19-location-tracking
+# COVNET
 
 ## TODO:
 1. Track user location ✅
