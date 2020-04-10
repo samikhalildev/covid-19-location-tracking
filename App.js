@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, Component } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Button, Clipboard, Animated } from 'react-native';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import * as TaskManager from 'expo-task-manager';
@@ -8,12 +8,19 @@ import { AsyncStorage } from 'react-native';
 import uuid from 'uuid-random';
 import axios from 'axios';
 
+import MapView, {
+  Marker,
+  AnimatedRegion,
+  Polyline,
+  PROVIDER_GOOGLE
+} from "react-native-maps";
+
 const LOCATION_TASK_NAME = 'background-location-task';
 const API = 'https://covnet-api.herokuapp.com/api/infections';
 const LATITUDE_DELTA = 0.009;
 const LONGITUDE_DELTA = 0.009;
 
-export default class Component extends React.Component {
+export default class App extends Component {
   _isMounted = false;
 
   constructor(props) {
@@ -31,10 +38,13 @@ export default class Component extends React.Component {
       crossedPaths: null,
       
       allowAccessLocation: false,
-      loading: true
+      loading: true,
 
-      // latitude: 0,
-      // longitude: 0,
+      latitude: 0,
+      longitude: 0,
+
+      showMap: false
+
       // distanceTravelled: 0,
       // prevLatLng: {},
       // coordinate: new AnimatedRegion({
@@ -70,6 +80,7 @@ export default class Component extends React.Component {
   _retrieveData = async () => {
     try {
       let uniqueId = await AsyncStorage.getItem('uniqueId');
+      // uniqueId = null;
 
       if (uniqueId == null || uniqueId == undefined) {
         uniqueId = await this.generateUniqueId();
@@ -78,6 +89,9 @@ export default class Component extends React.Component {
       console.log(uniqueId);
 
       let value = await AsyncStorage.getItem('userLocations');
+      // value = null;
+      
+      // this.GPSTesting('-33.855837, 150.904687');
       
       if (value != null || value != undefined) {
         let json = JSON.parse(value);
@@ -86,8 +100,7 @@ export default class Component extends React.Component {
           let { locations } = json;
 
           this.setState({ locations, uniqueId }, () => {
-            console.log('adding to state')
-            //this.GPSTesting('-33.849083, 150.906686');
+            // this.GPSTesting('-33.849946, 150.902624');
             this.getInfectedLocations();
           });
 
@@ -107,11 +120,10 @@ export default class Component extends React.Component {
   };
 
   GPSTesting = gps => {
-    // console.log('gps testing')
 
     var now = new Date();
-    now.setMinutes(now.getMinutes() + 19); // timestamp
-
+    // now.setMinutes(now.getMinutes() + 5); // timestamp
+    
     let location = {
       timestamp: Date.parse(now),
       coords: {
@@ -174,24 +186,38 @@ export default class Component extends React.Component {
           }
         }
 
-        let curated = [];
-        for (let i = 0; i < locations.length; i++) {
-          if (locations[i]['timestamp'] > unixtimeUTC_28daysAgo) {
-            curated.push(locations[i]);
-          }
-        }
+        // let curated = [];
+        // for (let i = 0; i < locations.length; i++) {
+        //   if (locations[i]['timestamp'] > unixtimeUTC_28daysAgo) {
+        //     curated.push(locations[i]);
+        //   }
+        // }
 
-        let lat_lon_time = {
+        let newLocation = {
           latitude,
           longitude,
-          timestamp: unixtimeUTC
+          timestamp
         };
 
-        curated.push(lat_lon_time);
-        //console.log('new location')
+        if (locations.length > 0) {
+          let dist = getDistance(locations[locations.length-1], newLocation);
+          // console.log(dist);
 
-        if (this._isMounted) {
-          this.setState({ locations: curated }, () => this._storeData());
+          if (dist > this.distanceInMeters + 20) {
+            locations.push(newLocation);
+            console.log('location added')
+
+            if (this._isMounted) {
+              this.setState({ locations, latitude, longitude }, () => this._storeData());
+            }
+          }
+        } else {
+          locations.push(newLocation);
+          console.log('location added')
+
+          if (this._isMounted) {
+            this.setState({ locations, latitude, longitude }, () => this._storeData());
+          }
         }
       }
     }
@@ -224,20 +250,19 @@ export default class Component extends React.Component {
     this._isMounted = false;
   }
 
-  getMapRegion = () => ({
-    latitude: this.state.latitude,
-    longitude: this.state.longitude,
+  getMapRegion = (location) => ({
+    latitude: location.latitude,
+    longitude: location.longitude,
     latitudeDelta: LATITUDE_DELTA,
     longitudeDelta: LONGITUDE_DELTA
   });
 
 
   getInfectedLocations = async () => {
-    console.log('getInfectedLocations()')
+    // console.log('getInfectedLocations()')
     let { uniqueId } = this.state;
     let infectedLocations = [];
 
-    console.log('calling api')
     let res = await axios.get(API);
 
     try {
@@ -257,7 +282,7 @@ export default class Component extends React.Component {
             }
 
           } else if (infection.coords.length > 0) {
-            console.log('a new case found')
+            // console.log('a new case found')
             infectedLocations.push(...infection.coords)
           }
         });
@@ -267,6 +292,8 @@ export default class Component extends React.Component {
         } else {
           this.setState({ loading: false })
         }
+      } else {
+        this.setState({ loading: false })
       }
     } catch (err) {
       console.log('err', err);
@@ -327,18 +354,23 @@ export default class Component extends React.Component {
 
       let timeMin = location.timestamp - withinTimeFrame;
       let timeMax = location.timestamp + withinTimeFrame;
-      // console.log(new Date(timeMin).toLocaleDateString() +' '+ new Date(timeMin).toLocaleTimeString());
+      
+      // console.log('min:' + new Date(timeMin).toLocaleDateString() +' '+ new Date(timeMin).toLocaleTimeString());
+      // console.log('max:' + new Date(timeMax).toLocaleDateString() +' '+ new Date(timeMax).toLocaleTimeString());
 
       // i will contain the coords of the minimum time of the window
       let i = this.binarySearchForTime(concernArray, timeMin);
       if (i < 0) i = -(i + 1);
 
       while (i < concernArray.length && concernArray[i].timestamp <= timeMax) {
-        // console.log(new Date(concernArray[i].timestamp).toLocaleDateString() +' '+ new Date(concernArray[i].timestamp).toLocaleTimeString());
+        //console.log('infected:' + new Date(concernArray[i].timestamp).toLocaleDateString() +' '+ new Date(concernArray[i].timestamp).toLocaleTimeString());
         let dist = getDistance(location, concernArray[i]);
-        if (dist <= 30) {
+        // console.log('dist', dist);
+
+        if (dist <= this.distanceInMeters) {
           console.log('Crossed path within', dist, 'meters');
-          this.setState({ crossedPaths: dist, loading: false });
+          let message = 'You may have got in contact with a confirmed case at ' + new Date(concernArray[i].timestamp).toLocaleTimeString() + ' on ' + new Date(concernArray[i].timestamp).toLocaleDateString();
+          this.setState({ crossedPaths: { infectedLocation: concernArray[i], userLocation: location, message}, loading: false });
           return;
         }
         i++;
@@ -347,66 +379,8 @@ export default class Component extends React.Component {
     this.setState({ loading: false })
   }
 
-  MIT_CrossPath = (locations, infectedLocations) => {
-
-    // Sort the concernLocationArray
-    let localArray = this.normalizeData(locations);
-    let concernArray = this.normalizeData(infectedLocations);
-
-    let concernTimeWindow = 1000 * 60 * 60 * 2; // +/- 2 hours window
-    let concernDistWindow = 30; // distance of concern, in feet
-
-    // At 38 degrees North latitude:
-    let ftPerLat = 364000; // 1 deg lat equals 364,000 ft
-    let ftPerLon = 288200; // 1 deg of longitude equals 288,200 ft
-
-    var nowUTC = new Date().toISOString();
-    var timeNow = Date.parse(nowUTC);
-
-    // Save a little CPU, no need to do sqrt()
-    let concernDistWindowSq = concernDistWindow * concernDistWindow;
-    
-    // Both locationArray and concernLocationArray should be in the
-    // format [ { "time": 123, "latitude": 12.34, "longitude": 34.56 }]
-    for (let loc of localArray) {
-
-      let timeMin = loc.timestamp - concernTimeWindow;
-      let timeMax = loc.timestamp + concernTimeWindow;
-
-      let i = this.binarySearchForTime(concernArray, timeMin);
-      if (i < 0) i = -(i + 1);
-
-      while (i < concernArray.length && concernArray[i].timestamp <= timeMax) {
-        // Perform a simple Euclidian distance test
-        let deltaLat = (concernArray[i].latitude - loc.latitude) * ftPerLat;
-        let deltaLon = (concernArray[i].longitude - loc.longitude) * ftPerLon;
-        // TODO: Scale ftPer factors based on lat to reduce projection error
-
-        let distSq = deltaLat * deltaLat + deltaLon * deltaLon;
-        if (distSq < concernDistWindowSq) {
-          // Crossed path.  Bin the count of encounters by days from today.
-          let longAgo = timeNow - loc.timestamp;
-          let daysAgo = Math.round(longAgo / (1000 * 60 * 60 * 24));
-
-          dayBin[daysAgo] += 1;
-        }
-
-        i++;
-      }
-    }
-
-    // TODO: Show in the UI!
-    console.log('Crossing results: ', dayBin);
-  }
-
-
+  // MIT
   binarySearchForTime(array, targetTime) {
-    // Binary search:
-    //   array = sorted array
-    //   target = search target
-    // Returns:
-    //   value >= 0,   index of found item
-    //   value < 0,    i where -(i+1) is the insertion point
     var i = 0;
     var n = array.length - 1;
 
@@ -427,13 +401,82 @@ export default class Component extends React.Component {
     return -i - 1;
   }
 
+  showId = () => {
+    this.setState({ showId: true }, () => {
+      setTimeout(() => {
+        this.setState({ showId: false })
+      }, 60000);
+    });
+  }
+
+  copiedId = () => {
+    const { uniqueId } = this.state;
+
+    this.setState({ copied: true }, () => {
+      Clipboard.setString(uniqueId);
+      setTimeout(() => {
+        this.setState({ copied: false })
+      }, 3000);
+    })
+  }
+
+  map = () => {
+    let { infectedLocations, locations, crossedPaths } = this.state;
+    let location = '';
+
+    location = locations[locations.length-1];
+    infectedLocations.unshift(location);
+
+    return (
+      <MapView
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        showUserLocation
+        loadingEnabled
+        region={this.getMapRegion(location)}
+      >
+        { infectedLocations.length > 0 ? infectedLocations.map((marker, index) => {
+            const coords = {
+                latitude: marker.latitude,
+                longitude: marker.longitude,
+            };
+
+            console.log(crossedPaths);
+            let crossed = crossedPaths != null && crossedPaths.infectedLocation.latitude == coords.latitude && crossedPaths.infectedLocation.longitude == coords.longitude;
+
+            const date = `at ${new Date(marker.timestamp).toLocaleTimeString()} on ${new Date(marker.timestamp).toLocaleDateString()}`;
+            const isMe = index === 0;
+
+            return (
+                <MapView.Marker
+                    key={index}
+                    pinColor={isMe ? 'blue' : crossed ? 'red' : 'green'}
+                    coordinate={coords}
+                    title={isMe ? 'My current location' : crossed ? 'Confimed case contact' : 'Confirmed case' }
+                    description={isMe ? `Recorded ${date}` : crossed ? 'This is where the infected case was at the time of contact' : `Closest location of confirmed case`}
+                />          
+            );
+        }) : null }
+      </MapView>
+    )
+  }
+
+  toggleView = () => {
+    this.setState({ showMap: !this.state.showMap })
+  }
+
   render() {
     const { uniqueId, loading, locations, crossedPaths, infectedLocations, isInfected, recentInfected, allowAccessLocation } = this.state;
-    // console.log('render()', this.state);
+    // console.log('locations', this.state.locations.length);
     return (
       <>
-        <View style={styles.logo}>
-          <Image/>
+        <View style={styles.logoContainer}>
+          <Image
+            source={
+              require('./assets/COVNET-w-t.png')
+            }
+            style={styles.logoImage}
+          />
         </View>
         { loading ? (
           <View style={styles.centerContainer}>
@@ -441,57 +484,77 @@ export default class Component extends React.Component {
           </View>
         ) : (
           <>
-            <View style={styles.centerContainer}>
-              { allowAccessLocation ? (
-                <Text>Your location is being logged locally in your device. You will be notifed if you have been in close contact with a confirmed case.</Text>
-              ) : (
-                <Text>In order for the app to work, location must be turned on. Your location will not leave your phone.</Text>
-              )}
+            { this.state.showMap ? this.map() : (
+              <>
+                <View style={styles.centerContainer}>
+                  { allowAccessLocation ? (
+                    <>
+                      <Text>Your location is being logged locally. You will be notifed if you have been in close contact with a confirmed case.</Text>
+                    </>
+                  ) : (
+                    <Text>In order for the app to work, location must be turned on. Your location will not leave your phone.</Text>
+                  )}
 
-              <View style={styles.containerTop}>
-                { recentInfected ? (
-                  <View>
-                    <Text>Thank you for trusting us!</Text>
-                    <Text>Your location is being tracked anonymously to inform other nearby users who may be at risk.</Text>
+                  <View style={styles.containerTop}>
+                    { recentInfected ? (
+                      <View>
+                        <Text>Thank you for trusting us!</Text>
+                        <Text>Your location is being tracked anonymously to inform other nearby users who may be at risk.</Text>
+                      </View>
+                    ) : isInfected ? (
+                      <View>
+                        <Text>You have been diagnosed with COVID-19, here's what you should do: </Text>
+                        <Text> - Self-isolate, stay at home!</Text>
+                        <Text> - Wear a surgical mask to reduce the risk of spreading the virus to more people</Text>
+                        <Text> - Wash your hands more often</Text>
+                        <Text> - Contact emergency if your symptoms become severe</Text>
+                      </View>
+                    ) : null}
                   </View>
-                ) : isInfected ? (
+
                   <View>
-                    <Text>You have been diagnosed with COVID-19, here's what you should do: </Text>
-                    <Text> - Self-isolate, stay at home!</Text>
-                    <Text> - Wear a surgical mask to reduce the risk of spreading the virus to more people</Text>
-                    <Text> - Wash your hands more often</Text>
-                    <Text> - Contact emergency if your symptoms become severe</Text>
+                    { crossedPaths != null ? (
+                      <View>
+                        <Text style={styles.crossedPath}>{crossedPaths.message}</Text>
+                      </View>
+                    ) : locations.length > 0 && infectedLocations.length > 0 && !isInfected ? (
+                      <View>
+                        <Text style={styles.green}>Good news!</Text>
+                        <Text>You have not been in contact with a confirmed case</Text>
+                        <Text>To make sure you don't get infected, follow these points:</Text>
+                        <Text> - Wash your hands!</Text>
+                        <Text> - Practice social distancing</Text>
+                        <Text> - Try to stay home as much as you can, only leave for work, groceries, excerice or to get medicine</Text>
+                      </View>
+                    ) : null }
                   </View>
+                  {
+                    locations.length != 0 || crossedPaths != null ? (
+                        <Button style={styles.mapbtn} onPress={() => this.toggleView()} title={this.state.showMap ? 'Back' : 'Map'} />
+                      ) : null 
+                  }
+              </View>
+              <View style={styles.deviceId}>
+                { this.state.copied ? (
+                  <FadeInView>
+                    <Text style={styles.blue}>Copied!</Text>
+                  </FadeInView>
+                ) : null }
+                { uniqueId ? this.state.showId ? (
+                  <FadeInView>
+                    <TouchableOpacity onPress={() => this.copiedId()}>
+                      <Text>{uniqueId}</Text>
+                    </TouchableOpacity>
+                  </FadeInView>
+                ) : (
+                  <Button 
+                    onPress={() => this.showId()}
+                    title="Show ID"
+                  />
                 ) : null}
               </View>
-
-              <View style={styles.containerTop}>
-                { crossedPaths != null ? (
-                  <View>
-                    <Text style={styles.crossedPath}>You have crossed path with a confirmed cases within {crossedPaths} meters distance.</Text>
-                  </View>
-                ) : locations.length > 0 && infectedLocations.length > 0 && !isInfected ? (
-                  <View>
-                    <Text style={styles.green}>Good news!</Text>
-                    <Text>You have not crossed paths with a confirmed case</Text>
-                    <Text>To make sure you don't get infected, follow these points:</Text>
-                    <Text> - Wash your hands!</Text>
-                    <Text> - Practice social distancing</Text>
-                    <Text> - Try to stay home as much as you can, only leave for work, groceries, excerice or to get medicine</Text>
-                  </View>
-                ) : null }
-              </View>
-          </View>
-          <View style={styles.deviceId}>
-            { this.state.copied ? (
-              <Text>Copied!</Text>
-            ) : null }
-            { uniqueId ? (
-              <TouchableOpacity onPress={() => this.setState({ copied: true })}>
-                <Text>{uniqueId}</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+            </>
+          )}
         </>
         )}
       </>
@@ -505,8 +568,14 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center"
   },
+  mapbtn: {
+    marginBottom: 15
+  },
   list: {
     flex:1
+  },
+  blue: {
+    color: 'blue'
   },
   centerContainer: {
     flex: 1,
@@ -530,6 +599,15 @@ const styles = StyleSheet.create({
     color: 'green'
   },
   item: {
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: -150,
+    marginBottom: -150
+  },
+  logoImage: {
+    width: 200,
+    resizeMode: 'contain'
   },
   deviceId: {
     paddingBottom: 20,
@@ -580,24 +658,26 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   }
 });
 
+const FadeInView = (props) => {
+  const [fadeAnim] = useState(new Animated.Value(0))  // Initial value for opacity: 0
 
-/*
+  React.useEffect(() => {
+    Animated.timing(
+      fadeAnim,
+      {
+        toValue: 1,
+        duration: 1000,
+      }
+    ).start();
+  }, [])
 
-<MapView
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          showUserLocation
-          followUserLocation
-          loadingEnabled
-          region={this.getMapRegion()}
-        >
-          <Polyline coordinates={this.state.locations} strokeWidth={5} />
-          <Marker.Animated
-            ref={marker => {
-              this.marker = marker;
-            }}
-            coordinate={this.state.coordinate}
-          />
-        </MapView>
-
-        */
+  return (
+    <Animated.View                 // Special animatable View
+      style={{
+        opacity: fadeAnim         // Bind opacity to animated value
+      }}
+    >
+      {props.children}
+    </Animated.View>
+  );
+}

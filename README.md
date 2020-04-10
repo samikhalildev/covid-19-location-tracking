@@ -9,7 +9,7 @@
   - The server will listen for new cases, the client will send the infected user location to the server
 4. If another user came in contact with the case, they will be notifed
   - All users in the same city will receieve the infected case
-  - If a user was in the same location (within 10 meters and within 2 hours range) of an infected cases, they will be notifed
+  - If a user was in the same location (within 15 meters and within 2 hours range) of an infected cases, they will be notifed
 
 # React Native installation:
 
