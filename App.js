@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import * as TaskManager from 'expo-task-manager';
@@ -28,7 +28,10 @@ export default class Component extends React.Component {
 
       // corresponds to other infected locations within the area
       infectedLocations: [],
-      crossedPaths: null
+      crossedPaths: null,
+      
+      allowAccessLocation: false,
+      loading: true
 
       // latitude: 0,
       // longitude: 0,
@@ -59,7 +62,8 @@ export default class Component extends React.Component {
     // const { status } = await Location.requestPermissionsAsync();
     const { status } = await Permissions.askAsync(Permissions.LOCATION);
     if (status === 'granted') {
-      // this.locationListener();
+      this.setState({ allowAccessLocation: true })
+      this.locationListener();
     }
   }
 
@@ -83,16 +87,18 @@ export default class Component extends React.Component {
 
           this.setState({ locations, uniqueId }, () => {
             console.log('adding to state')
-            this.GPSTesting('-33.849083, 150.906686');
+            //this.GPSTesting('-33.849083, 150.906686');
             this.getInfectedLocations();
           });
 
         } else {
           this.setState({ uniqueId });
+          this.getInfectedLocations();
         }
 
       } else {
         this.setState({ uniqueId });
+        this.getInfectedLocations();
       }
 
     } catch (error) {
@@ -258,10 +264,13 @@ export default class Component extends React.Component {
 
         if (infectedLocations.length > 0) {
           this.setState({ infectedLocations }, () => this.userHasCrossedPaths());
+        } else {
+          this.setState({ loading: false })
         }
       }
     } catch (err) {
       console.log('err', err);
+      this.setState({ loading: false })
     }
   }
 
@@ -329,12 +338,13 @@ export default class Component extends React.Component {
         let dist = getDistance(location, concernArray[i]);
         if (dist <= 30) {
           console.log('Crossed path within', dist, 'meters');
-          this.setState({ crossedPaths: dist });
+          this.setState({ crossedPaths: dist, loading: false });
           return;
         }
         i++;
       }
     }
+    this.setState({ loading: false })
   }
 
   MIT_CrossPath = (locations, infectedLocations) => {
@@ -418,45 +428,72 @@ export default class Component extends React.Component {
   }
 
   render() {
-    const { uniqueId, locations, crossedPaths, infectedLocations, isInfected, recentInfected } = this.state;
-    console.log('render()', this.state);
-
+    const { uniqueId, loading, locations, crossedPaths, infectedLocations, isInfected, recentInfected, allowAccessLocation } = this.state;
+    // console.log('render()', this.state);
     return (
       <>
-        <View style={styles.centerContainer}>
-          <Text>Your location is being logged locally in your device. You will be notifed if you have been in close contact with a confirmed case of COVID-19.</Text>
-
-          { recentInfected ? (
-            <View>
-              <Text>Thank you for trusting us!</Text>
-              <Text>Your location is being tracked anonymously to inform other nearby users who may be at risk.</Text>
-            </View>
-          ) : isInfected ? (
-            <View>
-              <Text>Check out these helpful info to help you through your time</Text>
-            </View>
-          ) : (
-            <View>
-              {/* <Text>{locations.length} location coordinates</Text> */}
-            </View>
-          )}
-
-          { crossedPaths != null ? (
-            <View>
-              <Text>You have crossed path with a confirmed cases within {crossedPaths} meters distance </Text>
-            </View>
-          ) : locations.length > 0 && infectedLocations.length > 0 && !isInfected ? (
-            <View>
-              <Text>Good news!</Text>
-              <Text>You have not crossed paths with a confirmed case</Text>
-              <Text>Check out these helpful info to stay health</Text>
-            </View>
-          ) : null }
+        <View style={styles.logo}>
+          <Image/>
         </View>
+        { loading ? (
+          <View style={styles.centerContainer}>
+            <Text>Loading ...</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.centerContainer}>
+              { allowAccessLocation ? (
+                <Text>Your location is being logged locally in your device. You will be notifed if you have been in close contact with a confirmed case.</Text>
+              ) : (
+                <Text>In order for the app to work, location must be turned on. Your location will not leave your phone.</Text>
+              )}
 
-        <View style={styles.deviceId}>
-          { uniqueId ? <Text>Device ID: {uniqueId}</Text> : null}
-        </View>
+              <View style={styles.containerTop}>
+                { recentInfected ? (
+                  <View>
+                    <Text>Thank you for trusting us!</Text>
+                    <Text>Your location is being tracked anonymously to inform other nearby users who may be at risk.</Text>
+                  </View>
+                ) : isInfected ? (
+                  <View>
+                    <Text>You have been diagnosed with COVID-19, here's what you should do: </Text>
+                    <Text> - Self-isolate, stay at home!</Text>
+                    <Text> - Wear a surgical mask to reduce the risk of spreading the virus to more people</Text>
+                    <Text> - Wash your hands more often</Text>
+                    <Text> - Contact emergency if your symptoms become severe</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.containerTop}>
+                { crossedPaths != null ? (
+                  <View>
+                    <Text style={styles.crossedPath}>You have crossed path with a confirmed cases within {crossedPaths} meters distance.</Text>
+                  </View>
+                ) : locations.length > 0 && infectedLocations.length > 0 && !isInfected ? (
+                  <View>
+                    <Text style={styles.green}>Good news!</Text>
+                    <Text>You have not crossed paths with a confirmed case</Text>
+                    <Text>To make sure you don't get infected, follow these points:</Text>
+                    <Text> - Wash your hands!</Text>
+                    <Text> - Practice social distancing</Text>
+                    <Text> - Try to stay home as much as you can, only leave for work, groceries, excerice or to get medicine</Text>
+                  </View>
+                ) : null }
+              </View>
+          </View>
+          <View style={styles.deviceId}>
+            { this.state.copied ? (
+              <Text>Copied!</Text>
+            ) : null }
+            { uniqueId ? (
+              <TouchableOpacity onPress={() => this.setState({ copied: true })}>
+                <Text>{uniqueId}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </>
+        )}
       </>
     );
   }
@@ -468,10 +505,31 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center"
   },
+  list: {
+    flex:1
+  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 25
+  },
+  containerTop: {
+    marginTop: 50
+  },
+  center: {
     alignItems: 'center'
+  },
+  logo: {
+
+  },
+  mbutton: {
+    marginBottom: 15
+  },
+  green: {
+    color: 'green'
+  },
+  item: {
   },
   deviceId: {
     paddingBottom: 20,
@@ -480,6 +538,9 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject
+  },
+  crossedPath: {
+    color: 'red'
   },
   bubble: {
     flex: 1,
