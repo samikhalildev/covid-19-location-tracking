@@ -1,18 +1,16 @@
 # COVNET
 
-## TODO:
-1. Track user location ✅
-2. Store state in local device ✅
-3. send data to server when user is infected
-  - generate unique id for each user ✅
-  - create a web form to send infected user id to server
-  - server will listen for ids sent and all notify clients ✅
-  - if a user was found, the client will send their past 2 weeks locations data to the server
-  - store data 
-4. if another user came in contact with the case, they will be notifed
-  - all users will receieve infected cases
-  - if an infected case was in the same location and at the same as the infected cases, they will be notifed
-
+## Tasks:
+1. Track user location
+2. Store state in local device
+3. Send data to server when user is infected 
+  - Generate unique id for each user
+  - Create a portal for health professionals to submit infected cases
+  - The server will listen for new cases, the client will send the infected user location to the server
+4. If another user came in contact with the case, they will be notifed
+  - All users in the same city will receieve the infected case
+  - If a user was in the same location (within 10 meters and within 2 hours range) of an infected cases, they will be notifed
+  
 # React Native installation:
 
 1. ```cd mobile```
