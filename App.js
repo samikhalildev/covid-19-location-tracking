@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Component } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, Button, Clipboard, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Button, Clipboard, Animated, Vibration, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import * as TaskManager from 'expo-task-manager';
@@ -7,6 +7,8 @@ import { getDistance } from 'geolib';
 import { AsyncStorage } from 'react-native';
 import uuid from 'uuid-random';
 import axios from 'axios';
+import { Notifications } from 'expo';
+import Constants from 'expo-constants';
 
 import MapView, {
   Marker,
@@ -91,6 +93,7 @@ export default class App extends Component {
       let value = await AsyncStorage.getItem('userLocations');
       // value = null;
       
+      // this.GPSTesting('-33.855978, 150.904620');
       // this.GPSTesting('-33.855837, 150.904687');
       
       if (value != null || value != undefined) {
@@ -123,7 +126,6 @@ export default class App extends Component {
 
     var now = new Date();
     // now.setMinutes(now.getMinutes() + 5); // timestamp
-    
     let location = {
       timestamp: Date.parse(now),
       coords: {
@@ -174,7 +176,6 @@ export default class App extends Component {
         let {latitude, longitude} = coords;
         let { locations } = this.state;
 
-        // Credit to safepaths MIT
         let unixtimeUTC = Math.floor(timestamp);
         let unixtimeUTC_28daysAgo = unixtimeUTC - 60 * 60 * 24 * 1000 * 28;
 
@@ -250,9 +251,9 @@ export default class App extends Component {
     this._isMounted = false;
   }
 
-  getMapRegion = (location) => ({
-    latitude: location.latitude,
-    longitude: location.longitude,
+  getMapRegion = location => ({
+    latitude: Number(location.latitude),
+    longitude: Number(location.longitude),
     latitudeDelta: LATITUDE_DELTA,
     longitudeDelta: LONGITUDE_DELTA
   });
@@ -369,7 +370,6 @@ export default class App extends Component {
 
         if (dist <= this.distanceInMeters) {
           console.log('Crossed path within', dist, 'meters');
-          console.log(concernArray[i].timestamp)
           let date = this.formatDate(concernArray[i].timestamp);
           let message = 'You may have got in contact with a confirmed case ' + date;
 
@@ -383,7 +383,6 @@ export default class App extends Component {
     this.setState({ loading: false })
   }
 
-  // MIT
   binarySearchForTime(array, targetTime) {
     var i = 0;
     var n = array.length - 1;
@@ -461,7 +460,7 @@ export default class App extends Component {
                     pinColor={isMe ? 'blue' : showMap == 'contact' ? 'red' : 'green'}
                     coordinate={coords}
                     title={isMe && showMap == 'contact' ? 'Where I was' : isMe ? 'Where I am' : 'Infected user' }
-                    description={isMe ? `Recorded ${date}` : showMap == 'contact' ? 'This is how close the confirmed case was to you' : `Closest location of confirmed case in your area, updated ${date}`}
+                    description={isMe ? `Recorded ${date}` : showMap == 'contact' ? 'This is how close the confirmed case was to you' : `Closest location of confirmed case in your area`}
                 />          
             );
         }) : null }
@@ -505,19 +504,14 @@ export default class App extends Component {
                   { allowAccessLocation ? (
                     <>
                       <Text>Your location is being logged locally. You will be notifed if you have been in close contact with a confirmed case.</Text>
-                      <Text>{locations.length}</Text>
+                      {/* <Text>{locations.length}</Text> */}
                     </>
                   ) : (
                     <Text>In order for the app to work, location must be turned on. Your location will not leave your phone.</Text>
                   )}
 
                   <View style={styles.containerTop}>
-                    { recentInfected ? (
-                      <View>
-                        <Text>Thank you for trusting us!</Text>
-                        <Text>Your location is being tracked anonymously to inform other nearby users who may be at risk.</Text>
-                      </View>
-                    ) : isInfected ? (
+                    { isInfected ? (
                       <View>
                         <Text>You have been diagnosed with COVID-19, here's what you should do: </Text>
                         <Text> - Self-isolate, stay at home!</Text>
@@ -528,7 +522,7 @@ export default class App extends Component {
                     ) : null}
                   </View>
 
-                  <View>
+                  <View style={styles.containerTop}>
                     { crossedPaths != null ? (
                       <View>
                         <TouchableOpacity onPress={() => this.toggleView('contact')}> 
@@ -562,7 +556,7 @@ export default class App extends Component {
                     <Text style={styles.blue}>Copied!</Text>
                   </FadeInView>
                 ) : null }
-                { uniqueId ? this.state.showId ? (
+                { uniqueId != null ? this.state.showId ? (
                   <FadeInView>
                     <TouchableOpacity onPress={() => this.copiedId()}>
                       <Text>{uniqueId}</Text>
@@ -585,6 +579,9 @@ export default class App extends Component {
 }
 
 const styles = StyleSheet.create({
+  app: {
+    backgroundColor: 'grey'
+  },
   container: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "flex-end",
@@ -606,7 +603,7 @@ const styles = StyleSheet.create({
     padding: 25
   },
   containerTop: {
-    marginTop: 50
+    marginTop: 15,
   },
   center: {
     alignItems: 'center'
@@ -619,8 +616,6 @@ const styles = StyleSheet.create({
   },
   green: {
     color: 'green'
-  },
-  item: {
   },
   logoContainer: {
     alignItems: 'center',
