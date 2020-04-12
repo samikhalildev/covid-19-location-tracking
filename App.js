@@ -16,7 +16,7 @@ import MapView, {
 } from "react-native-maps";
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const API = 'https://covnet-api.herokuapp.com/api/infections';
+const API = 'https://covnet.herokuapp.com/api/infections';
 const LATITUDE_DELTA = 0.009;
 const LONGITUDE_DELTA = 0.009;
 
@@ -369,10 +369,14 @@ export default class App extends Component {
 
         if (dist <= this.distanceInMeters) {
           console.log('Crossed path within', dist, 'meters');
-          let message = 'You may have got in contact with a confirmed case at ' + new Date(concernArray[i].timestamp).toLocaleTimeString() + ' on ' + new Date(concernArray[i].timestamp).toLocaleDateString();
+          console.log(concernArray[i].timestamp)
+          let date = this.formatDate(concernArray[i].timestamp);
+          let message = 'You may have got in contact with a confirmed case ' + date;
+
           this.setState({ crossedPaths: { infectedLocation: concernArray[i], userLocation: location, message}, loading: false });
           return;
         }
+
         i++;
       }
     }
@@ -421,11 +425,18 @@ export default class App extends Component {
   }
 
   map = () => {
-    let { infectedLocations, locations, crossedPaths } = this.state;
+    let { infectedLocations, locations, crossedPaths, showMap } = this.state;
     let location = '';
 
-    location = locations[locations.length-1];
-    infectedLocations.unshift(location);
+    if (showMap == 'map') {
+      location = locations[locations.length-1];
+      infectedLocations.unshift(location);
+
+    } else {
+      if (crossedPaths == null) return false;
+      location = crossedPaths.userLocation;
+      infectedLocations = [location, crossedPaths.infectedLocation];
+    }
 
     return (
       <MapView
@@ -437,23 +448,20 @@ export default class App extends Component {
       >
         { infectedLocations.length > 0 ? infectedLocations.map((marker, index) => {
             const coords = {
-                latitude: marker.latitude,
-                longitude: marker.longitude,
+                latitude: Number(marker.latitude),
+                longitude: Number(marker.longitude)
             };
 
-            console.log(crossedPaths);
-            let crossed = crossedPaths != null && crossedPaths.infectedLocation.latitude == coords.latitude && crossedPaths.infectedLocation.longitude == coords.longitude;
-
-            const date = `at ${new Date(marker.timestamp).toLocaleTimeString()} on ${new Date(marker.timestamp).toLocaleDateString()}`;
+            const date = this.formatDate(marker.timestamp);
             const isMe = index === 0;
 
             return (
                 <MapView.Marker
                     key={index}
-                    pinColor={isMe ? 'blue' : crossed ? 'red' : 'green'}
+                    pinColor={isMe ? 'blue' : showMap == 'contact' ? 'red' : 'green'}
                     coordinate={coords}
-                    title={isMe ? 'My current location' : crossed ? 'Confimed case contact' : 'Confirmed case' }
-                    description={isMe ? `Recorded ${date}` : crossed ? 'This is where the infected case was at the time of contact' : `Closest location of confirmed case`}
+                    title={isMe && showMap == 'contact' ? 'Where I was' : isMe ? 'Where I am' : 'Infected user' }
+                    description={isMe ? `Recorded ${date}` : showMap == 'contact' ? 'This is how close the confirmed case was to you' : `Closest location of confirmed case in your area, updated ${date}`}
                 />          
             );
         }) : null }
@@ -461,8 +469,15 @@ export default class App extends Component {
     )
   }
 
-  toggleView = () => {
-    this.setState({ showMap: !this.state.showMap })
+  formatDate = timestamp => {
+    let time = new Date(timestamp).toLocaleTimeString();
+    time = time.substring(0, time.split(':')[0].length === 2 ? 5 : 4) + ' ' + time.split(' ')[1]
+
+    return `at ${time} on ${new Date(timestamp).toDateString()}`;
+  }
+
+  toggleView = t => {
+    this.setState({ showMap: t })
   }
 
   render() {
@@ -490,6 +505,7 @@ export default class App extends Component {
                   { allowAccessLocation ? (
                     <>
                       <Text>Your location is being logged locally. You will be notifed if you have been in close contact with a confirmed case.</Text>
+                      <Text>{locations.length}</Text>
                     </>
                   ) : (
                     <Text>In order for the app to work, location must be turned on. Your location will not leave your phone.</Text>
@@ -515,7 +531,11 @@ export default class App extends Component {
                   <View>
                     { crossedPaths != null ? (
                       <View>
-                        <Text style={styles.crossedPath}>{crossedPaths.message}</Text>
+                        <TouchableOpacity onPress={() => this.toggleView('contact')}> 
+                          <Text>
+                            <Text style={styles.crossedPath}>{crossedPaths.message}. Click to show location of contact with the infected user</Text>
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     ) : locations.length > 0 && infectedLocations.length > 0 && !isInfected ? (
                       <View>
@@ -529,8 +549,10 @@ export default class App extends Component {
                     ) : null }
                   </View>
                   {
-                    locations.length != 0 || crossedPaths != null ? (
-                        <Button style={styles.mapbtn} onPress={() => this.toggleView()} title={this.state.showMap ? 'Back' : 'Map'} />
+                    locations.length != 0 ? (
+                      <>
+                        <Button style={styles.mapbtn} onPress={() => this.toggleView('map')} title={this.state.showMap ? 'Back' : 'Map'} />
+                      </>
                       ) : null 
                   }
               </View>
