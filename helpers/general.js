@@ -1,18 +1,19 @@
 import uuid from 'uuid-random';
 import { loadData, setData } from '../services/localStorage';
-import isLocationsNearby from './isNearby';
 import Config from '../constants/Config';
 import { generateUserId } from '../services/apis';
+import { getDistance } from 'geolib';
 
 export const getUserId = async () => {
     let userId = await loadData('userId');
+    // userId = null
+    console.log(userId)
 
     if (!isEmpty(userId)) {
         return userId;
     }
     
     userId = await generateUserId();
-    console.log(userId)
 
     try {
         return await setData('userId', userId);
@@ -24,9 +25,11 @@ export const getUserId = async () => {
 
 export const getStoredLocation = async () => {
   let locations = await loadData('userLocations', false);
+  // locations = null
 
   if (!isEmpty(locations)) {
     let contacts = await loadData('contacts', false)
+    // contacts = null
 
     if (isEmpty(contacts)) 
       contacts = []
@@ -73,35 +76,40 @@ export const findInfectedContacts = async (locations, infectedLocations, contact
 
       for (let i = 0; i < concernArray.length; i++) {
         let nextIndex = i+1;
-        // console.log('infected', formatDate(concernArray[i].timestamp))
+        console.log('infected', formatDate(concernArray[i].timestamp))
         
         if (concernArray[i].timestamp <= timeMax) {
-          // console.log(1)
+          console.log(1)
 
           if (concernArray[i].timestamp >= timeMin) {
-            // console.log('2-1')
+            console.log('2-1')
 
-            if (isLocationsNearby(concernArray[i].latitude, concernArray[i].longitude, location.latitude, location.longitude)) {
+            console.log(getDistance(location, concernArray[i]))
+            if (getDistance(location, concernArray[i]) <= Config.distanceInMeters) {
               crossedPaths(location, concernArray[i], contacts)
+
             } else {
               nearbyInfectedLocations.push(concernArray[i])
+              console.log('far')
             }
-            // console.log(concernArray[i].latitude, concernArray[i].longitude)
 
           } else if (nextIndex < concernArray.length && concernArray[i+1].timestamp >= timeMin) {
-            // console.log('2-2')
-            // console.log('end', formatDate(concernArray[i+1].timestamp))
+            console.log('2-2')
+            console.log('end', formatDate(concernArray[i+1].timestamp))
+            console.log(getDistance(location, concernArray[i]))
 
-            if (isLocationsNearby(concernArray[i].latitude, concernArray[i].longitude, location.latitude, location.longitude)) {
+            if (getDistance(location, concernArray[i]) <= Config.distanceInMeters) {
               crossedPaths(location, concernArray[i], contacts)
 
             } else {
               nearbyInfectedLocations.push(concernArray[i])
+              console.log('far')
             }
-            console.log(concernArray[i].latitude, concernArray[i].longitude)
+
           }
+          console.log(concernArray[i].latitude, concernArray[i].longitude)
         }
-      // console.log('---')
+      console.log('---')
     }
 
     /*

@@ -46,12 +46,11 @@ export default class HomeScreen extends Component {
 
   componentDidMount = async () => {
     this._isMounted = true;
-
     await this.startUp();
 
     setInterval(async () => {
       await this.runProcess();
-    }, Config.locationInterval);
+    }, Config.locationInterval * 3);
   }
 
   startUp = async () => {
@@ -59,9 +58,6 @@ export default class HomeScreen extends Component {
     await this.getCity();
     await this.runProcess();
     if (this._isMounted) this.setState({ startUp: false });
-  }
-
-  fetchUserLocation = async () => {
   }
 
   // This will run every 5 minutes, update location, get new cases and look for infected locations
@@ -72,7 +68,8 @@ export default class HomeScreen extends Component {
       if (!isEmpty(vals) && vals.locations && vals.locations.length) {
         let { locations, contacts } = vals;
         let numberOfContacts = Number(contacts.length)
-
+        console.log('locations', locations.length)
+        
         // update locations and contacts
         if (this._isMounted) {
           this.setState({ locations, contacts }, async () => {
@@ -89,30 +86,28 @@ export default class HomeScreen extends Component {
             // get infected locations
             let data = await getInfectedLocations(userId, city);
 
-            if (!isEmpty(data) && 'infectedLocations' in data) {
+            if (data != null && 'infectedLocations' in data && data.infectedLocations.length > 0) {
               let { infectedLocations, isInfected } = data;
 
-              if (infectedLocations.length > 0) {
-                console.log('isInfected', isInfected)
-                if (this._isMounted) this.setState({ isInfected }, async () => {
-                  let nearbyInfectedLocations = []
+              console.log('isInfected', isInfected)
+              if (this._isMounted) this.setState({ isInfected }, async () => {
+                let nearbyInfectedLocations = []
 
-                  findInfectedContacts(locations, infectedLocations, contacts, nearbyInfectedLocations);
-                  console.log('contacts', contacts.length)
+                findInfectedContacts(locations, infectedLocations, contacts, nearbyInfectedLocations);
+                console.log('contacts', contacts.length)
 
-                  if (this._isMounted && nearbyInfectedLocations.length)
-                    this.setState({ infectedLocations: nearbyInfectedLocations });
+                if (this._isMounted && nearbyInfectedLocations.length)
+                  this.setState({ infectedLocations: nearbyInfectedLocations });
 
-                  if (contacts.length && contacts.length > numberOfContacts) {
-                    await setData('contacts', contacts);
-                    console.log('saved contacts')
-                    if(this._isMounted) this.setState({ contacts, newContact: true });
-                  }
-                })
+                if (contacts.length && contacts.length > numberOfContacts) {
+                  await setData('contacts', contacts);
+                  console.log('saved contacts')
+                  if(this._isMounted) this.setState({ contacts, newContact: true });
+                }
+              })
                 
-              } else {
-                console.log('no infected locations')
-              }
+            } else if (data != null && 'isInfected' in data) {
+              if (this._isMounted) this.setState({ isInfected: data.isInfected })
             }
           })
         }
@@ -122,7 +117,7 @@ export default class HomeScreen extends Component {
       console.log(err);
 
     } finally {
-      if(this._isMounted)this.setState({ loading: false })
+      if(this._isMounted) this.setState({ loading: false })
     }
   }
 
@@ -143,14 +138,13 @@ export default class HomeScreen extends Component {
   }
 
   render() {
-    const { mapStatus, loading, locations, contacts, newContact, infectedLocations, isInfected, recentInfected } = this.state;
-
+    const { locations, contacts, infectedLocations, isInfected, recentInfected } = this.state;
     return (
       <View style={styles.container}>
         { this.props.locationGranted && locations.length ? 
           <MapInterface mainMap={true} locations={locations} infectedLocations={infectedLocations} /> : null}
         {/* Bottom Tab bar */}
-        { recentInfected || contacts.length ? (
+        { isInfected || recentInfected || contacts.length ? (
           <View style={styles.alertContainer}>
             { contacts.length ? (
                 <Text style={styles.alertText}>
@@ -158,7 +152,7 @@ export default class HomeScreen extends Component {
                   click the contacts tap to find where it happened.
                 </Text>
               ) : (
-              <Text style={styles.alertText}> You have been confirmed with with COVID-19! </Text>              
+              <Text style={styles.alertText}> You have been confirmed with COVID-19! </Text>              
             )}
              
             {/* 
@@ -178,6 +172,7 @@ HomeScreen.navigationOptions = {
 
 const styles = StyleSheet.create({
   container: {
+    flex:1
   },
   map: {
     ...StyleSheet.absoluteFillObject
@@ -257,7 +252,7 @@ const styles = StyleSheet.create({
     }),
     alignItems: 'center',
     backgroundColor: '#bf000c',
-    paddingVertical: 20,
+    paddingVertical: 5,
   },
   alertText: {
     fontSize: 17,

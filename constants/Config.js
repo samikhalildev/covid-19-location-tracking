@@ -2,11 +2,11 @@ export default {
     LOCATION_TASK_NAME: 'background-location-tracking',
     LATITUDE_DELTA: 0.009,
     LONGITUDE_DELTA: 0.009,
-    locationInterval: 60000 * 5,
-    distanceInMeters: 30,  // Time (in milliseconds) between location information polls 5 minutes
-    minLocationSaveInterval: 60000 * 4, // Minimum time between location information saves. 4 minute
+    locationInterval: 60000 * 2,  // Time (in milliseconds) between location information polls 2 minutes
+    distanceInMeters: 30, 
+    minLocationSaveInterval: 60000, // Minimum time between location information saves. 1 minute
     maxBackfillTime: 60000 * 60 * 24,
-    API: 'https://covnet.tech/api/users'
+    API: 'http://localhost:5000/api/users'
 };
 
 

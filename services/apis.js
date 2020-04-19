@@ -21,7 +21,7 @@ export const getNewCases = async (currUser, locations, city) => {
     try {
       if (res.data && res.data.success && res.data.infections && res.data.infections.length) {
         for (let infection of res.data.infections) {
-          if (infection.userId == currUser) {
+          if (infection._id == currUser) {
               return sendInfectedLocations(currUser, locations, city);
           }
         }
@@ -64,14 +64,14 @@ export const getInfectedLocations = async (userId, city) => {
     let infectedLocations = [];
     let isInfected = false;
     let res = await axios.get(Config.API + `/infected/${city}`);
-    
+
     try {
       if (res && res.data && res.data.success && res.data.infections && res.data.infections.length > 0) {
         let { infections } = res.data;
 
         await infections.map(async (infection) => {
           // send user location data if a user has been infected
-          if (infection.userId == userId) {
+          if (infection._id == userId) {
             isInfected = true;
 
           } else if (infection.coords.length > 0) {

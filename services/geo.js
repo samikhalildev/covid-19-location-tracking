@@ -57,16 +57,15 @@ const getlocation = async newLocations => {
 
       if (curated.length > 0) {
         let lastRecordedLocation = curated[curated.length-1];
-        let dist = getDistance(lastRecordedLocation, newLocation);
 
-        if (dist > Config.distanceInMeters + 20) {
+        if (getDistance(lastRecordedLocation, newLocation) >= Config.distanceInMeters) {
           curated.push(newLocation);
           console.log('location added')
           await setData('userLocations', curated)
           return true
 
         } else {
-          console.log('close', dist);
+          console.log('close');
           return false
         }
 
@@ -89,7 +88,6 @@ TaskManager.defineTask(Config.LOCATION_TASK_NAME, async ({ data, error }) => {
     }
     if (data) {
         let { locations } = data;
-  
         if (locations.length > 0) {
           getlocation(locations);
         }

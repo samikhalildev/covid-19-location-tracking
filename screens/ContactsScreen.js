@@ -24,7 +24,7 @@ export default class ContactsScreen extends React.Component {
 
   getContacts = async () => {
     let contacts = await loadData('contacts', false)
-
+    // contacts = null
     if (!isEmpty(contacts)) {
       this.setState({ contacts })
     }
