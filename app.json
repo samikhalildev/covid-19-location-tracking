@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Covnet",
+    "slug": "Covnet",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/covnet.png",
+    "scheme": "myapp",
+    "splash": {
+      "image": "./assets/images/covnet.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you when you have been in contact with a COVID-19 case",
+        "NSLocationWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you when you have been in contact with a COVID-19 case",
+        "NSLocationUsageDescription": "Covnet needs access to your location so it can notify you when you have been in contact with a COVID-19 case",
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
+      }
+    }
+  }
+}
