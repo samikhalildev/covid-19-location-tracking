@@ -13,7 +13,7 @@ The app will ask for permission to access the user’s location data and will tr
 - Node.js is used as an API gateway to communicate between the client (mobile and web) and database.
 - Mongodb Atlas is used to host and store the infected cases in the cloud
 
-## Tasks completed:
+## Features:
 1. Track user location
 2. Store state in local device
 3. Send data to server when user is infected 
