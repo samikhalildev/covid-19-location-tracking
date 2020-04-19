@@ -2,6 +2,7 @@
   "expo": {
     "name": "Covnet",
     "slug": "Covnet",
+    "description": "Informs you if you have been in close proximity of a COVID-19 case.",
     "platforms": [
       "ios",
       "android"

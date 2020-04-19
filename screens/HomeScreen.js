@@ -7,7 +7,7 @@ import Config from '../constants/Config';
 import isEmpty from '../helpers/isEmpty';
 import { loadData, setData } from '../services/localStorage';
 import { getNewCases, getInfectedLocations, sendNotification, sendInfectedLocations } from '../services/apis';
-import { getUniqueId, findInfectedContacts, getStoredLocation } from '../helpers/general';
+import { getUserId, findInfectedContacts, getStoredLocation } from '../helpers/general';
 
 import MapInterface from '../components/Map';
 import Loading from '../components/Loading';
@@ -20,7 +20,7 @@ export default class HomeScreen extends Component {
 
     this.state = {
       // user data
-      uniqueId: null,
+      userId: null,
       locations: [],
       isInfected: false,
       recentInfected: false,
@@ -76,10 +76,10 @@ export default class HomeScreen extends Component {
         // update locations and contacts
         if (this._isMounted) {
           this.setState({ locations, contacts }, async () => {
-            const { uniqueId, city } = this.state;
+            const { userId, city } = this.state;
 
             // get new cases
-            let status = await getNewCases(uniqueId, locations, city);
+            let status = await getNewCases(userId, locations, city);
 
             if (status && status == 'sent') {
               console.log('sent location');
@@ -87,9 +87,9 @@ export default class HomeScreen extends Component {
             } 
 
             // get infected locations
-            let data = await getInfectedLocations(uniqueId, city);
+            let data = await getInfectedLocations(userId, city);
 
-            if ('infectedLocations' in data) {
+            if (!isEmpty(data) && 'infectedLocations' in data) {
               let { infectedLocations, isInfected } = data;
 
               if (infectedLocations.length > 0) {
@@ -131,8 +131,8 @@ export default class HomeScreen extends Component {
   }
 
   getId = async () => {
-    let uniqueId = await getUniqueId();
-    this.setState({ uniqueId })
+    let userId = await getUserId();
+    this.setState({ userId })
   }
 
   getCity = async () => {

@@ -1,13 +1,27 @@
 import axios from 'axios';
 import Config from '../constants/Config'
 
+export const generateUserId = async () => {
+  let res = await axios.get(Config.API + '/new-user')
+  try {
+    if (res.data && res.data.success && res.data.userId) {
+      return res.data.userId
+      
+    } else {
+      return false
+    }
+  } catch (err) {
+    return false
+  }
+}
+
 // Get a list of newly infected users and check if the current user is a new infected user
 export const getNewCases = async (currUser, locations, city) => {
-    let res = await axios.get(Config.API + '/casesWithoutCoords')
+    let res = await axios.get(Config.API + '/new-cases')
     try {
       if (res.data && res.data.success && res.data.infections && res.data.infections.length) {
         for (let infection of res.data.infections) {
-          if (infection.uniqueId == currUser) {
+          if (infection.userId == currUser) {
               return sendInfectedLocations(currUser, locations, city);
           }
         }
@@ -20,7 +34,7 @@ export const getNewCases = async (currUser, locations, city) => {
 // send location of infected user to notify others nearby
 export const sendInfectedLocations = async (currUser, locations, city) => {
     const data = {
-        uniqueId: currUser,
+        userId: currUser,
         city,
         coords: locations,
     }
@@ -32,7 +46,7 @@ export const sendInfectedLocations = async (currUser, locations, city) => {
         }
     };
 
-    let res = await axios.post(Config.API, data, options)
+    let res = await axios.post(Config.API + '/infected/locations', data, options)
 
     try {
         if (res.data.success) {
@@ -46,10 +60,10 @@ export const sendInfectedLocations = async (currUser, locations, city) => {
 }
 
 // Get all infected locations to see if a user was nearby
-export const getInfectedLocations = async (uniqueId, city) => {
+export const getInfectedLocations = async (userId, city) => {
     let infectedLocations = [];
     let isInfected = false;
-    let res = await axios.get(Config.API + `/${city}`);
+    let res = await axios.get(Config.API + `/infected/${city}`);
     
     try {
       if (res && res.data && res.data.success && res.data.infections && res.data.infections.length > 0) {
@@ -57,7 +71,7 @@ export const getInfectedLocations = async (uniqueId, city) => {
 
         await infections.map(async (infection) => {
           // send user location data if a user has been infected
-          if (infection.uniqueId == uniqueId) {
+          if (infection.userId == userId) {
             isInfected = true;
 
           } else if (infection.coords.length > 0) {
@@ -70,7 +84,7 @@ export const getInfectedLocations = async (uniqueId, city) => {
         
     } catch (err) {
       console.log('err', err);
-      this.setState({ loading: false })
+      return {}
     }
 }
 

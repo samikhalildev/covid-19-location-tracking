@@ -6,7 +6,7 @@ export default {
     distanceInMeters: 30,  // Time (in milliseconds) between location information polls 5 minutes
     minLocationSaveInterval: 60000 * 4, // Minimum time between location information saves. 4 minute
     maxBackfillTime: 60000 * 60 * 24,
-    API: 'https://covnet.tech/api/infections'
+    API: 'https://covnet.tech/api/users'
 };
 
 

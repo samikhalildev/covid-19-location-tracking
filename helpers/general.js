@@ -2,19 +2,20 @@ import uuid from 'uuid-random';
 import { loadData, setData } from '../services/localStorage';
 import isLocationsNearby from './isNearby';
 import Config from '../constants/Config';
+import { generateUserId } from '../services/apis';
 
-export const getUniqueId = async () => {
-    let uniqueId = await loadData('uniqueId');
-    // uniqueId = '7d44fecb-0852-463d-91dd-239a54f3af6f'
-    // uniqueId = '29d6d60d-91b3-48a6-8e2e-586a46ba4dd7'
-    // uniqueId = null
-    if (!isEmpty(uniqueId)) {
-        return uniqueId;
+export const getUserId = async () => {
+    let userId = await loadData('userId');
+
+    if (!isEmpty(userId)) {
+        return userId;
     }
     
-    uniqueId = uuid();
+    userId = await generateUserId();
+    console.log(userId)
+
     try {
-        return await setData('uniqueId', uniqueId);
+        return await setData('userId', userId);
     } catch (error) {
         console.log('err', error)
     }

@@ -17,7 +17,7 @@ import isEmpty from '../helpers/isEmpty';
 import { Notifications } from 'expo';
 import { loadData, setData } from '../services/localStorage';
 import { getNewCases, getInfectedLocations, sendNotification, sendInfectedLocations } from '../services/apis';
-import { getUniqueId, findInfectedContacts } from '../helpers/general';
+import { getUserId, findInfectedContacts } from '../helpers/general';
 
 import MapInterface from '../components/Map';
 import Loading from '../components/Loading';
@@ -30,7 +30,7 @@ export default class InfoScreen extends Component {
     super(props);
 
     this.state = {
-      uniqueId: null,
+      userId: null,
       city: '',
       newUser: true,
       citySubmitted: false,
@@ -46,7 +46,6 @@ export default class InfoScreen extends Component {
   }
 
   startUp = async () => {
-    await this.getId();
     await this.getCity();
     //this.setUpNotifications;
     this.setState({ loading: false });
@@ -69,20 +68,23 @@ export default class InfoScreen extends Component {
   // UI state updates
 
   getId = async () => {
-    let uniqueId = await getUniqueId();
-    this.setState({ uniqueId })
+    let userId = await getUserId();
+    this.setState({ userId })
   }
 
   getCity = async () => {
     let city = await loadData('userCity');
     if (!isEmpty(city)) {
       this.setState({ city, newUser: false });
+      await this.getId();
     }
   }
 
   submitCity = async city => {
     await setData('userCity', city);
     this.setState({ city, newUser: false, citySubmitted: true }, () => setTimeout(() => this.setState({ citySubmitted: false }), 2000))
+    if (this.state.userId == null)
+      await this.getId();
   }
 
   showId = () => {
@@ -96,10 +98,10 @@ export default class InfoScreen extends Component {
   }
 
   copiedId = () => {
-    const { uniqueId } = this.state;
+    const { userId } = this.state;
 
     this.setState({ copied: true }, () => {
-      Clipboard.setString(uniqueId);
+      Clipboard.setString(userId);
     })
   }
 
@@ -108,7 +110,7 @@ export default class InfoScreen extends Component {
   }
 
   render() {
-    const { uniqueId, showId, newUser, copied, city, loading, citySubmitted } = this.state;
+    const { userId, showId, newUser, copied, city, loading, citySubmitted } = this.state;
     const { locationGranted } = this.props;
     
     // console.log('locations', locations.length)
@@ -126,7 +128,7 @@ export default class InfoScreen extends Component {
                   {showId ? (
                     <TouchableOpacity onPress={() => this.copiedId()}>
                       <Text style={styles.lightTextNoMargin}>{copied ? 'Copied' : 'Click to copy'}</Text>
-                      <Text style={styles.lightText}>{uniqueId}</Text>
+                      <Text style={styles.lightText}>{userId}</Text>
                     </TouchableOpacity>
                   ) : (
                     <Button 
