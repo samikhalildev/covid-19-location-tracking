@@ -2,7 +2,7 @@
   "expo": {
     "name": "Covnet",
     "slug": "Covnet",
-    "description": "Covnet is an anonymously contact tracing system. It informs you if you have been in close contact with another user who have been diagnosed with the virus to help you get tested early and self-isolate to avoid further spread.",
+    "description": "Covnet is an anonymously contact tracing system. It informs you if you have been in close contact with a COVID-19 case and show you where the interaction may have occurred. You can view infected locations within 100 meters from where you are and were 2 hours ago.",
     "platforms": [
       "ios",
       "android"
@@ -24,12 +24,12 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "3",
+      "buildNumber": "4",
       "bundleIdentifier": "tech.covnet",
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case",
-        "NSLocationWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case",
-        "NSLocationUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case and show you nearby infected places",
+        "NSLocationWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case and show you nearby infected places",
+        "NSLocationUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case and show you nearby infected places",
         "UIBackgroundModes": [
           "location",
           "fetch"

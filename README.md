@@ -4,7 +4,7 @@
 The rapid transmission of the coronavirus COVID-19 has led to a sudden lack of information of whether or not a user has been in close contact with a COVID-19 case; have they become infected with the virus or have they become a carrier for it? So we decided to make an app that tracks this kind of information anonymously.
 
 ## What it does
-Covnet is an anonymously contact tracing system. It informs you if you have been in close contact with a COVID-19 case and show you where the interaction may have occurred. You can also view infected locations within 100 meters from where you are and were 2 hours ago to avoid visting an infected location.
+Covnet is an anonymously contact tracing system. It informs you if you have been in close contact with a COVID-19 case and show you where the interaction may have occurred. You can view infected locations within 100 meters from where you are and were 2 hours ago.
 
 How does the app know who has the virus? The app uses GPS to record your location data (anonymously), all the data is stored within your device. If a person gets tested positive, they have the option to provide their unique identification number to the health authorities to let the system know that they have tested positive. Again this is anonymous, we have no idea who they were.
 
