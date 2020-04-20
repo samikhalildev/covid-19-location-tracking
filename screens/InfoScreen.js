@@ -137,6 +137,9 @@ export default class InfoScreen extends Component {
                       title="Show my ID"
                     />
                   )}
+                  <View style={styles.contact}>
+                    <Button style={styles.btn} onPress={() =>  WebBrowser.openBrowserAsync('https://covnet.tech')} title="Visit our website"/>
+                  </View>
                 </View>
               ) : null 
               ) }
@@ -174,7 +177,7 @@ function TopContainer({ locationGranted }) {
 function LocationGrantedText({ locationGranted }) {
   return (
     <Text style={styles.lightText}>
-      { locationGranted ? 'Your location is being logged locally. You will be notifed if you have been in close contact with a COVID-19 case.'
+      { locationGranted ? 'Your location is being logged locally.\n\nThe app will notify you if you have been in close contact with a COVID-19 case and show you where the interaction may have occurred.\n\n You can also view infected locations within 100 meters from where you are and were 2 hours ago so you can avoid the area, this is updated every 5 minutes.'
       : 'In order for the app to work, location must be turned on. Your location will not leave your phone.'} 
     </Text>
   )
@@ -290,4 +293,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2e78b7',
   },
+  contact: {
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0,
+    borderColor: '#ededed',
+  },
+  contactText: {
+    fontSize: 15,
+    alignSelf: 'flex-start',
+  }
 });

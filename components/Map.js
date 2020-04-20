@@ -3,6 +3,7 @@ import { Text, Dimensions, View, StyleSheet } from 'react-native';
 import Config from '../constants/Config';
 import { formatDate, getMapRegion } from '../helpers/general';
 import { createStackNavigator } from '@react-navigation/stack';
+import { getDistance } from 'geolib';
 
 import MapView, {
   Marker,
@@ -51,7 +52,6 @@ const MapInterface = ({ locations, infectedLocations, mainMap, route, navigation
       <>
       <MapView
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
         loadingEnabled
         region={getMapRegion(location)}
       >
@@ -69,8 +69,8 @@ const MapInterface = ({ locations, infectedLocations, mainMap, route, navigation
                     key={index}
                     pinColor={isMe ? 'blue' : contact ? 'red' : 'green'}
                     coordinate={coords}
-                    title={isMe && contact ? 'Where you were' : isMe ? 'My last recorded location' : 'Infected user' }
-                    description={isMe ? `Recorded ${date}` : contact ? `This is where the confirmed case was ${date}` : `Closest location of confirmed case recorded ${date}`}
+                    title={isMe && contact ? 'Where you were' : isMe ? 'My last recorded location' : contact ? 'Infected user' : `Infected location within ${getDistance(location, marker)} meters` }
+                    description={isMe || contact ? `Recorded ${date}` : `Recorded ${date.substr(0, date.indexOf('on') - 1)}, stay away from this area`}
                 />          
             );
         }) : null }

@@ -33,6 +33,7 @@ export const getStoredLocation = async () => {
 
     if (isEmpty(contacts)) 
       contacts = []
+      
     return { locations, contacts }
   }
   return {}
@@ -84,26 +85,26 @@ export const findInfectedContacts = async (locations, infectedLocations, contact
           if (concernArray[i].timestamp >= timeMin) {
             console.log('2-1')
 
-            console.log(getDistance(location, concernArray[i]))
-            if (getDistance(location, concernArray[i]) <= Config.distanceInMeters) {
+            let dist = getDistance(location, concernArray[i])
+            if (dist <= Config.distanceInMeters) {
               crossedPaths(location, concernArray[i], contacts)
 
-            } else {
+            } else if (dist <= 100) {
+              console.log(dist)
               nearbyInfectedLocations.push(concernArray[i])
-              console.log('far')
             }
 
           } else if (nextIndex < concernArray.length && concernArray[i+1].timestamp >= timeMin) {
             console.log('2-2')
             console.log('end', formatDate(concernArray[i+1].timestamp))
-            console.log(getDistance(location, concernArray[i]))
 
-            if (getDistance(location, concernArray[i]) <= Config.distanceInMeters) {
+            let dist = getDistance(location, concernArray[i])
+            if (dist <= Config.distanceInMeters) {
               crossedPaths(location, concernArray[i], contacts)
 
-            } else {
+            } else if (dist <= 100) {
+              console.log(dist)
               nearbyInfectedLocations.push(concernArray[i])
-              console.log('far')
             }
 
           }
@@ -170,10 +171,12 @@ const binarySearchForTime = (array, targetTime) => {
 }
 
 export const formatDate = timestamp => {
-    let time = new Date(timestamp).toLocaleTimeString();
-    time = time.substring(0, time.split(':')[0].length === 2 ? 5 : 4) + ' ' + time.split(' ')[1]
+  let time = new Date(Number(timestamp)).toLocaleTimeString();
 
-    return `at ${time} on ${new Date(timestamp).toDateString()}`;
+  let ampm = time.split(' ').length > 1 ? ' ' + time.split(' ')[1] : ''
+  time = time.substring(0, time.split(':')[0].length === 2 ? 5 : 4) + ampm
+
+  return `at ${time} on ${new Date(Number(timestamp)).toDateString()}`;
 }
 
 

@@ -85,10 +85,12 @@ export default class HomeScreen extends Component {
 
             // get infected locations
             let data = await getInfectedLocations(userId, city);
+            console.log('getInfectedLocations')
 
             if (data != null && 'infectedLocations' in data && data.infectedLocations.length > 0) {
               let { infectedLocations, isInfected } = data;
 
+              console.log('got infected locations', infectedLocations.length)
               console.log('isInfected', isInfected)
               if (this._isMounted) this.setState({ isInfected }, async () => {
                 let nearbyInfectedLocations = []
@@ -146,13 +148,13 @@ export default class HomeScreen extends Component {
         {/* Bottom Tab bar */}
         { isInfected || recentInfected || contacts.length ? (
           <View style={styles.alertContainer}>
-            { contacts.length ? (
-                <Text style={styles.alertText}>
-                  You have been identified as a close contact with a confirmed case, 
-                  click the contacts tap to find where it happened.
-                </Text>
-              ) : (
+            { isInfected || recentInfected  ? (
               <Text style={styles.alertText}> You have been confirmed with COVID-19! </Text>              
+            ) : (
+              <Text style={styles.alertText}>
+                Based on your GPS history, it is possible you were in contact with or close to someone diagnosed with the virus.
+                Click the Contacts tab to view more
+              </Text>
             )}
              
             {/* 

@@ -40,19 +40,21 @@ export default class ContactsScreen extends React.Component {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         {
-          contacts.length ? (
-            contacts.map((contact, index) => {
+          contacts.length ? (<>
+            <Text style={styles.topText}>You have had close contact with the following confirmed {`case${contacts.length > 1 ? 's' : ''}`}. Click to view where it happened:</Text>
+            {contacts.map((contact, index) => {
               return (
                 <OptionButton
                   key={index}
                   icon='md-warning'
-                  label={`Intersected ${formatDate(contact.myLocation.timestamp)}\nClick to view where it happened`}
+                  label={`Recorded ${formatDate(contact.myLocation.timestamp)}`}
                   onPress={() => this.renderMap(contact)}
                 />
               )
-            })
+            })}
+            </>
           ) : (
-            <Text>You have no close contacts</Text>
+            <Text>Based on available data, you haven't been near anyone reported positive for COVID-19.</Text>
           )
         }
       </ScrollView>
@@ -86,8 +88,14 @@ const styles = StyleSheet.create({
     padding: 25
   },
   optionIconContainer: {
-    marginRight: 12,
+    marginRight: 12  
   },
+  topText: {
+    paddingBottom: 15
+  },
+  blue: {
+    color: 'blue'
+  },  
   option: {
     backgroundColor: '#fdfdfd',
     paddingHorizontal: 15,
@@ -103,5 +111,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     alignSelf: 'flex-start',
     marginTop: 1,
+    color: 'red'
   },
 });

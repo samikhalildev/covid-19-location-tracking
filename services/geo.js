@@ -37,7 +37,7 @@ const getlocation = async newLocations => {
       if (locations.length > 0) {
         let lastSaveTime = locations[locations.length - 1].timestamp;
         if (lastSaveTime + Config.minLocationSaveInterval > unixtimeUTC) {
-          // console.log('too soon')
+          console.log('too soon')
           return;
         }
       }
