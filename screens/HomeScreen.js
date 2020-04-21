@@ -8,7 +8,6 @@ import isEmpty from '../helpers/isEmpty';
 import { loadData, setData } from '../services/localStorage';
 import { getNewCases, getInfectedLocations, sendNotification, sendInfectedLocations } from '../services/apis';
 import { getUserId, findInfectedContacts, getStoredLocation } from '../helpers/general';
-
 import MapInterface from '../components/Map';
 import Loading from '../components/Loading';
 
@@ -35,7 +34,6 @@ export default class HomeScreen extends Component {
       newContact: false,
       
       loading: true,
-      startUp: true,
 
       latitude: 0,
       longitude: 0,
@@ -46,22 +44,16 @@ export default class HomeScreen extends Component {
 
   componentDidMount = async () => {
     this._isMounted = true;
-    await this.startUp();
-
-    setInterval(async () => {
-      await this.runProcess();
-    }, Config.locationInterval * 3);
-  }
-
-  startUp = async () => {
     await this.getId();
     await this.getCity();
     await this.runProcess();
-    if (this._isMounted) this.setState({ startUp: false });
   }
 
-  // This will run every 5 minutes, update location, get new cases and look for infected locations
+  // This will update location, get new cases and look for infected locations
   runProcess = async () => {
+    if (!this.state.loading) this.setState({ loading: true })
+    console.log('start')
+
     try {
       let vals = await getStoredLocation();
 
@@ -90,39 +82,45 @@ export default class HomeScreen extends Component {
             if (data != null && 'infectedLocations' in data && data.infectedLocations.length > 0) {
               let { infectedLocations, isInfected } = data;
 
-              console.log('got infected locations', infectedLocations.length)
+              console.log('infected locations', infectedLocations.length)
               console.log('isInfected', isInfected)
               if (this._isMounted) this.setState({ isInfected }, async () => {
                 let nearbyInfectedLocations = []
 
                 findInfectedContacts(locations, infectedLocations, contacts, nearbyInfectedLocations);
                 console.log('contacts', contacts.length)
-
+                console.log('nearbyInfectedLocations', nearbyInfectedLocations.length)
+                
                 if (this._isMounted && nearbyInfectedLocations.length)
                   this.setState({ infectedLocations: nearbyInfectedLocations });
 
-                if (contacts.length && contacts.length > numberOfContacts) {
-                  await setData('contacts', contacts);
-                  console.log('saved contacts')
-                  if(this._isMounted) this.setState({ contacts, newContact: true });
-                }
+                await setData('contacts', contacts);
+                if(this._isMounted) this.setState({ contacts, newContact: true });
+                
+                this.setOffLoading()
               })
                 
             } else if (data != null && 'isInfected' in data) {
-              if (this._isMounted) this.setState({ isInfected: data.isInfected })
-            }
+              if (this._isMounted) this.setState({ isInfected: data.isInfected, loading: false })
+            } 
           })
         }
+      } else {
+        this.setOffLoading()
       }
 
     } catch (err) {
       console.log(err);
-
-    } finally {
-      if(this._isMounted) this.setState({ loading: false })
+      this.setOffLoading()
     }
   }
 
+  setOffLoading = async () => {
+    if (this._isMounted) {
+      this.setState({ loading: false })
+      console.log('end')
+    }
+  }
   componentWillUnmount = async () => {
     this._isMounted = false;
   }
@@ -140,11 +138,19 @@ export default class HomeScreen extends Component {
   }
 
   render() {
-    const { locations, contacts, infectedLocations, isInfected, recentInfected } = this.state;
+    const { locations, contacts, infectedLocations, isInfected, recentInfected, loading } = this.state;
     return (
       <View style={styles.container}>
         { this.props.locationGranted && locations.length ? 
-          <MapInterface mainMap={true} locations={locations} infectedLocations={infectedLocations} /> : null}
+          <MapInterface mainMap={true} locations={locations} infectedLocations={infectedLocations} /> : (
+          <View style={styles.vContainer}> 
+            <Text style={styles.lightText}>No movement has been detected yet.</Text>
+            <TouchableOpacity onPress={() => this.runProcess()}>
+              <Text>{loading ? 'Loading...' : 'Click to refresh' }</Text> 
+            </TouchableOpacity>
+          </View>
+        )}
+          
         {/* Bottom Tab bar */}
         { isInfected || recentInfected || contacts.length ? (
           <View style={styles.alertContainer}>
@@ -163,6 +169,15 @@ export default class HomeScreen extends Component {
             </View> */}
           </View>
         ) : null}
+        <View style={[styles.refreshContainer, contacts.length ? styles.btnBottom : isInfected || recentInfected ? styles.btnBottom2 : styles.btnZero]}>
+          { this.props.locationGranted && locations.length ? 
+            loading ? (
+              <Button style={styles.refreshBtn} title='Loading...'/> 
+            ) : (
+              <Button onPress={() => this.runProcess()} style={styles.refreshBtn} title='Refresh'/>
+            )
+          : null }
+        </View>
       </View>
     );
   }
@@ -174,7 +189,7 @@ HomeScreen.navigationOptions = {
 
 const styles = StyleSheet.create({
   container: {
-    flex:1
+    flex: 1
   },
   map: {
     ...StyleSheet.absoluteFillObject
@@ -189,7 +204,8 @@ const styles = StyleSheet.create({
     color: 'rgba(0,0,0,0.4)',
     fontSize: 14,
     lineHeight: 19,
-    textAlign: 'center'
+    textAlign: 'center',
+    textAlignVertical: "center"
   },
   lightTextNoMargin: {
     color: 'rgba(0,0,0,0.4)',
@@ -207,6 +223,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 20,
+  },
+  vContainer: {
+    alignItems: 'center',
+    textAlign: 'center',
+    flex: 1, justifyContent: 'center'
   },
   welcomeImage: {
     width: 200,
@@ -235,6 +256,23 @@ const styles = StyleSheet.create({
     color: 'rgba(96,100,109, 1)',
     lineHeight: 24,
     textAlign: 'center',
+  },
+  refreshContainer: {
+    position: 'absolute',//use absolute position to show button on top of the map
+    alignSelf: 'flex-end',
+    backgroundColor: 'white',
+    padding: 2
+  },
+  btnZero: {
+    bottom: 10, //for center align
+  },
+  btnBottom2: {
+    bottom: '7%'
+  },
+  btnBottom: {
+    bottom: '17%'
+  },
+  refreshBtn: {
   },
   alertContainer: {
     position: 'absolute',

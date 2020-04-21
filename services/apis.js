@@ -64,11 +64,9 @@ export const getInfectedLocations = async (userId, city) => {
     let infectedLocations = [];
     let isInfected = false;
     let res = await axios.get(Config.API + `/infected/${city}`);
-
     try {
       if (res && res.data && res.data.success && res.data.infections && res.data.infections.length > 0) {
         let { infections } = res.data;
-
         await infections.map(async (infection) => {
           // send user location data if a user has been infected
           if (infection._id == userId) {

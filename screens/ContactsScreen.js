@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { RectButton, ScrollView } from 'react-native-gesture-handler';
+import { RectButton, ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { loadData, setData } from '../services/localStorage';
 import Config from '../constants/Config';
 import isEmpty from '../helpers/isEmpty';
@@ -14,7 +14,8 @@ export default class ContactsScreen extends React.Component {
     super(props);
 
     this.state = {
-      contacts: []
+      contacts: [],
+      updatedContacts: false
     }
   }
 
@@ -22,11 +23,16 @@ export default class ContactsScreen extends React.Component {
     this.getContacts()
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.refreshContacts && !prevState.updatedContacts) {
+      this.getContacts()
+    }
+  }
+
   getContacts = async () => {
     let contacts = await loadData('contacts', false)
-    // contacts = null
     if (!isEmpty(contacts)) {
-      this.setState({ contacts })
+      this.setState({ contacts, updatedContacts: true })
     }
   } 
 
@@ -41,20 +47,24 @@ export default class ContactsScreen extends React.Component {
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         {
           contacts.length ? (<>
-            <Text style={styles.topText}>You have had close contact with the following confirmed {`case${contacts.length > 1 ? 's' : ''}`}. Click to view where it happened:</Text>
+            <Text style={styles.topText}>You had close contact with the following confirmed {`case${contacts.length > 1 ? 's' : ''}`}. Click to view where it happened:</Text>
             {contacts.map((contact, index) => {
               return (
                 <OptionButton
                   key={index}
                   icon='md-warning'
-                  label={`Recorded ${formatDate(contact.myLocation.timestamp)}`}
+                  label={`Recorded ${formatDate(contact.myLocation.timestamp)}\n${contact.timeframe}`}
                   onPress={() => this.renderMap(contact)}
                 />
               )
             })}
             </>
           ) : (
-            <Text>Based on available data, you haven't been near anyone reported positive for COVID-19.</Text>
+            <View style={styles.vContainer}> 
+            <TouchableOpacity onPress={() => this.getContacts()}>
+            <Text style={styles.lightText}>{`Based on available data, you haven't been near anyone reported positive for COVID-19.\nClick to reload contacts`}</Text>
+            </TouchableOpacity>
+            </View>
           )
         }
       </ScrollView>
@@ -90,6 +100,11 @@ const styles = StyleSheet.create({
   optionIconContainer: {
     marginRight: 12  
   },
+  vContainer: {
+    alignItems: 'center',
+    textAlign: 'center',
+    flex: 1, justifyContent: 'center'
+  },
   topText: {
     paddingBottom: 15
   },
@@ -113,4 +128,11 @@ const styles = StyleSheet.create({
     marginTop: 1,
     color: 'red'
   },
+  lightText: {
+    color: 'rgba(0,0,0,0.4)',
+    fontSize: 14,
+    lineHeight: 19,
+    textAlign: 'center',
+    textAlignVertical: "center"
+  }
 });

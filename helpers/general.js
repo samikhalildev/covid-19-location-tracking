@@ -3,6 +3,7 @@ import { loadData, setData } from '../services/localStorage';
 import Config from '../constants/Config';
 import { generateUserId } from '../services/apis';
 import { getDistance } from 'geolib';
+import {TimeAgo} from './timeAgo'
 
 export const getUserId = async () => {
     let userId = await loadData('userId');
@@ -25,11 +26,9 @@ export const getUserId = async () => {
 
 export const getStoredLocation = async () => {
   let locations = await loadData('userLocations', false);
-  // locations = null
 
   if (!isEmpty(locations)) {
     let contacts = await loadData('contacts', false)
-    // contacts = null
 
     if (isEmpty(contacts)) 
       contacts = []
@@ -66,50 +65,57 @@ export const findInfectedContacts = async (locations, infectedLocations, contact
   let withinTimeFrame = 1000 * 60 * 60 * 2; // 2 hours
   console.log('\n\n')
 
-  for (let location of localArray) {
+  let now = Date.now();
+  let twoHoursAgo = now - withinTimeFrame
+
+  for (let locIndex = 0; locIndex < localArray.length; locIndex++) {
+    let location = localArray[locIndex]
 
     // location.timestamp += withinTimeFrame /5
-      let timeMin = location.timestamp - withinTimeFrame;
-      let timeMax = location.timestamp + withinTimeFrame;
+    let timeMin = location.timestamp - withinTimeFrame;
+    let timeMax = location.timestamp + withinTimeFrame;
 
-      console.log('timeMin', formatDate(timeMin))
-      console.log('timeMax', formatDate(timeMax))
+    console.log('timeMin', formatDate(timeMin))
+    console.log('timeMax', formatDate(timeMax))
 
-      for (let i = 0; i < concernArray.length; i++) {
-        let nextIndex = i+1;
-        console.log('infected', formatDate(concernArray[i].timestamp))
-        
-        if (concernArray[i].timestamp <= timeMax) {
-          console.log(1)
+    for (let i = 0; i < concernArray.length; i++) {
+      let nextIndex = i+1;
+      console.log('infected', formatDate(concernArray[i].timestamp))
+      
+      if (concernArray[i].timestamp <= timeMax) {
+        console.log(1)
 
-          if (concernArray[i].timestamp >= timeMin) {
-            console.log('2-1')
+        if (concernArray[i].timestamp >= timeMin) {
+          console.log('2-1')
 
-            let dist = getDistance(location, concernArray[i])
-            if (dist <= Config.distanceInMeters) {
-              crossedPaths(location, concernArray[i], contacts)
-
-            } else if (dist <= 100) {
-              console.log(dist)
-              nearbyInfectedLocations.push(concernArray[i])
-            }
-
-          } else if (nextIndex < concernArray.length && concernArray[i+1].timestamp >= timeMin) {
-            console.log('2-2')
-            console.log('end', formatDate(concernArray[i+1].timestamp))
-
-            let dist = getDistance(location, concernArray[i])
-            if (dist <= Config.distanceInMeters) {
-              crossedPaths(location, concernArray[i], contacts)
-
-            } else if (dist <= 100) {
-              console.log(dist)
-              nearbyInfectedLocations.push(concernArray[i])
-            }
-
+          let dist = getDistance(location, concernArray[i])
+          if (dist <= Config.distanceInMeters) {
+            crossedPaths(locIndex, location, localArray, concernArray[i], contacts)
           }
-          console.log(concernArray[i].latitude, concernArray[i].longitude)
+          
+          if (withinTwoHours(location.timestamp, concernArray[i].timestamp, twoHoursAgo) && dist <= 500) {
+            nearbyInfectedLocations.push(concernArray[i])
+          }
+
+          console.log(dist)
+
+        } else if (nextIndex < concernArray.length && concernArray[i+1].timestamp >= timeMin) {
+          console.log('2-2')
+          console.log('end', formatDate(concernArray[i+1].timestamp))
+
+          let dist = getDistance(location, concernArray[i])
+          if (dist <= Config.distanceInMeters) {
+            crossedPaths(locIndex, location, localArray, concernArray[i], contacts)
+          }
+          
+          if (withinTwoHours(location.timestamp, concernArray[i+1].timestamp, twoHoursAgo) && dist <= 500) {
+            nearbyInfectedLocations.push(concernArray[i])
+          }
+          console.log(dist)
+
         }
+        console.log(concernArray[i].latitude, concernArray[i].longitude)
+      }
       console.log('---')
     }
 
@@ -132,16 +138,32 @@ export const findInfectedContacts = async (locations, infectedLocations, contact
   }
 }
 
-const crossedPaths = (myLocation, infectedLocation, contacts) => {
+const withinTwoHours = (t1, t2, twoHoursAgo) => {
+  return t1 >= twoHoursAgo || t2 >= twoHoursAgo
+}
+
+const crossedPaths = (myLocationIndex, myLocation, myLocations, infectedLocation, contacts) => {
     if (contacts.some(item => item.myLocation.timestamp == myLocation.timestamp && item.infectedLocation.latitude == infectedLocation.latitude && item.infectedLocation.longitude == infectedLocation.longitude)) {
       console.log('already contact with this person');
       return false;
     }
 
+    let timeframe = 0
+    let now = Date.now();
+
+    if (myLocationIndex == myLocations.length - 1) {
+      timeframe = TimeAgo.inWords(now, myLocation.timestamp)
+    } else {
+      timeframe = TimeAgo.inWords(myLocations[myLocationIndex+1].timestamp, myLocation.timestamp)
+    }
+
+    console.log(timeframe)
+
     let data = { 
       myLocation, 
       infectedLocation,
-      recent: true 
+      recent: true,
+      timeframe  
     }
 
     contacts.unshift(data);

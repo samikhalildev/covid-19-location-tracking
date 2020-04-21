@@ -25,7 +25,7 @@
     "ios": {
       "supportsTablet": true,
       "buildNumber": "4",
-      "bundleIdentifier": "tech.covnet",
+      "bundleIdentifier": "com.realitything.covnet",
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case and show you nearby infected places",
         "NSLocationWhenInUseUsageDescription": "Covnet needs access to your location so it can notify you if you have been in close contact with a COVID-19 case and show you nearby infected places",
@@ -37,8 +37,13 @@
       }
     },
     "android": {
-      "package": "tech.covnet",
-      "versionCode": 1
+      "package": "com.realitything.covnet",
+      "versionCode": 1,
+      "config":{
+        "googleMaps": {
+          "apiKey": "API"
+        }
+      }
     }
   }
 }

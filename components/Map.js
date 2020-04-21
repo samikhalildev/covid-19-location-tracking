@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Dimensions, View, StyleSheet } from 'react-native';
+import { Text, Dimensions, View, StyleSheet, Platform } from 'react-native';
 import Config from '../constants/Config';
 import { formatDate, getMapRegion } from '../helpers/general';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -38,7 +38,7 @@ const MapInterface = ({ locations, infectedLocations, mainMap, route, navigation
       if (infectedLocations.length)
         _infectedLocations = Array.from(infectedLocations)
       location = locations[locations.length-1];
-      _infectedLocations.unshift(location);
+      // _infectedLocations.unshift(location);
 
     } else {
       if (isEmpty(contact)) return false;
@@ -53,6 +53,8 @@ const MapInterface = ({ locations, infectedLocations, mainMap, route, navigation
       <MapView
         style={styles.map}
         loadingEnabled
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+        showsUserLocation={!contact}
         region={getMapRegion(location)}
       >
         { _infectedLocations.length > 0 ? _infectedLocations.map((marker, index) => {
@@ -62,15 +64,16 @@ const MapInterface = ({ locations, infectedLocations, mainMap, route, navigation
             };
 
             const date = formatDate(marker.timestamp);
+            const time = date.substr(0, date.indexOf('on') - 1)
             const isMe = index === 0;
 
             return (
                 <MapView.Marker
                     key={index}
-                    pinColor={isMe ? 'blue' : contact ? 'red' : 'green'}
+                    pinColor={isMe && contact ? 'blue' : 'red'}
                     coordinate={coords}
-                    title={isMe && contact ? 'Where you were' : isMe ? 'My last recorded location' : contact ? 'Infected user' : `Infected location within ${getDistance(location, marker)} meters` }
-                    description={isMe || contact ? `Recorded ${date}` : `Recorded ${date.substr(0, date.indexOf('on') - 1)}, stay away from this area`}
+                    title={isMe && contact ? 'Where you were' : contact ? 'Infected user' : `Infected location within ${getDistance(location, marker)} meters` }
+                    description={contact ? `Recorded ${date}` : `Recorded ${time}, stay away from this area`}
                 />          
             );
         }) : null }

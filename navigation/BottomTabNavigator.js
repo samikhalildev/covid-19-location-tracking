@@ -31,7 +31,7 @@ export default function BottomTabNavigator(props) {
       <BottomTab.Screen
         name="Home"
         options={{
-          title: 'Map',
+          title: 'Tracking',
           tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="md-map" />,
         }}>
           {props => <HomeScreen {...props} locationGranted={locationGranted}
@@ -40,12 +40,13 @@ export default function BottomTabNavigator(props) {
       
       <BottomTab.Screen
         name="Contacts"
-        component={ContactsScreen}
         options={{
           title: 'Contacts',
           tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="md-contacts" />,
-        }}
-      />
+        }}>
+          {props => <ContactsScreen {...props} refreshContacts={true}
+        />}
+        </BottomTab.Screen>
     </BottomTab.Navigator>
   );
 }
