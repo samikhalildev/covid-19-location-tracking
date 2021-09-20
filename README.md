@@ -1,4 +1,5 @@
 # COVNET
+https://covnet.herokuapp.com/
 
 ## Inspiration
 The rapid transmission of the coronavirus COVID-19 has led to a sudden lack of information of whether or not a user has been in close contact with a COVID-19 case; have they become infected with the virus or have they become a carrier for it? So we decided to make an app that tracks this kind of information anonymously.
